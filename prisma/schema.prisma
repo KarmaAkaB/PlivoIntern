@@ -1,0 +1,91 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url = env("DATABASE_URL")
+}
+
+
+
+model Organization {
+  id        String   @id @default(cuid())
+  name      String @unique
+  slug      String   
+  users     UserOrg[]
+  services  Service[]
+  incidents Incident[]
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String
+  userOrgs  UserOrg[]
+}
+
+model UserOrg {
+  id             String   @id @default(cuid())
+  userId         String
+  organizationId String
+  role           Role
+  user           User        @relation(fields: [userId], references: [id])
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  @@unique([userId, organizationId])
+}
+
+enum Role {
+  ADMIN
+  MEMBER
+}
+
+model Service {
+  id          String   @id @default(cuid())
+  name        String
+  type        String
+  status      ServiceStatus
+  description String?
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  incidents      Incident[]   @relation("ServiceIncidents")
+}
+
+model Incident {
+  id          String   @id @default(cuid())
+  title       String
+  status      IncidentStatus
+  type        IncidentType
+  createdAt   DateTime @default(now())
+  resolvedAt  DateTime?
+  updates     IncidentUpdate[]
+  services    Service[] @relation("ServiceIncidents")
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+}
+
+model IncidentUpdate {
+  id          String   @id @default(cuid())
+  message     String
+  createdAt   DateTime @default(now())
+  incidentId  String
+  incident    Incident @relation(fields: [incidentId], references: [id])
+}
+
+enum IncidentStatus {
+  ONGOING
+  MONITORING
+  RESOLVED
+}
+
+enum IncidentType {
+  INCIDENT
+  MAINTENANCE
+}
+
+enum ServiceStatus {
+  OPERATIONAL
+  DEGRADED
+  PARTIAL_OUTAGE
+  MAJOR_OUTAGE
+}
